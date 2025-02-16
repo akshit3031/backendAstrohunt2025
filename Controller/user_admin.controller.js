@@ -194,7 +194,7 @@ const initiateRegister = async (req, res) => {
     // Set registration token in cookie
     res.cookie("registrationToken", registrationToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: process.env.NODE_ENV === "development",
       maxAge: 10 * 60 * 1000, // 10 minutes
       sameSite: "strict",
     });
