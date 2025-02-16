@@ -9,14 +9,23 @@ import cors from "cors";
 dotenv.config();
 const app = express();
 
+// CORS configuration
 app.use(
   cors({
-    origin: "https://frontend-antariksh.vercel.app", // your frontend URL
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    origin: "https://frontend-antariksh.vercel.app", // Specify the exact frontend URL (no trailing slash)
+    credentials: true, // Allow cookies and credentials
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Allowed methods
+    allowedHeaders: ["Content-Type", "Authorization"], // Allowed headers for preflight requests
   })
 );
+
+// Explicitly handle preflight requests
+app.options('*', cors({
+  origin: "https://frontend-antariksh.vercel.app",  // Same origin
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+}));
 
 // Middleware
 app.use(express.json());
