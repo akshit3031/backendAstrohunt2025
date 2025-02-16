@@ -194,9 +194,9 @@ const initiateRegister = async (req, res) => {
     // Set registration token in cookie
     res.cookie("registrationToken", registrationToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "development",
+      secure: true,
       maxAge: 10 * 60 * 1000, // 10 minutes
-      sameSite: "strict",
+      sameSite: "None",
     });
 
     // Send OTP via SMS
@@ -287,14 +287,14 @@ const verifyAndRegister = async (req, res) => {
       .clearCookie("registrationToken")
       .cookie("accessToken", accessToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        secure: true,
+        sameSite: "None",
         maxAge: 60 * 60 * 1000,
       })
       .cookie("refreshToken", refreshToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        secure: true,
+        sameSite: "None",
         maxAge: 7 * 24 * 60 * 60 * 1000,
       })
       .status(201)
