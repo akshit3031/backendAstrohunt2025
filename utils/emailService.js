@@ -3,14 +3,14 @@ import nodemailer from "nodemailer";
 const client = nodemailer.createTransport({
     service: "Gmail",
     auth: {
-        user: "akshitgarg3031@gmail.com",
-        pass: "#Akshit1093"
+        user: "architchhajed6@gmail.com",
+        pass: "smaj ydmv viqz qhrj"
     }
 });
 
 client.sendMail(
     {
-        from: "akshitgarg3031@gmail.com",
+        from: "architchhajed6@gmail.com",
         to: "12213031@nitkkr.ac.in",
         subject: "Sending",
         text: "Hello"
@@ -22,7 +22,7 @@ client.sendMail(
 const sendEmail = async (toEmail, otp) => {
     try{
         const mailOptions = {
-            from: "akshitgarg3031@gmail.com",
+            from: "architchhajed6@gmail.com",
             to: toEmail,
             subject: "OTP for registration",
             text: `${otp}`
