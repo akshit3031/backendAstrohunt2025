@@ -196,7 +196,7 @@ const initiateRegister = async (req, res) => {
       httpOnly: true,
       secure: true,
       maxAge: 10 * 60 * 1000, // 10 minutes
-      sameSite: "None",
+      sameSite: "strict",
     });
 
     // Send OTP via SMS
@@ -288,13 +288,13 @@ const verifyAndRegister = async (req, res) => {
       .cookie("accessToken", accessToken, {
         httpOnly: true,
         secure: true,
-        sameSite: "None",
+        sameSite: "strict",
         maxAge: 60 * 60 * 1000,
       })
       .cookie("refreshToken", refreshToken, {
         httpOnly: true,
         secure: true,
-        sameSite: "None",
+        sameSite: "strict",
         maxAge: 7 * 24 * 60 * 60 * 1000,
       })
       .status(201)
