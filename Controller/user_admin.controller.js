@@ -196,7 +196,7 @@ const initiateRegister = async (req, res) => {
       httpOnly: true,
       secure: true,
       maxAge: 10 * 60 * 1000, // 10 minutes
-      sameSite: "strict",
+      sameSite: "None",
     });
 
     // Send OTP via SMS
