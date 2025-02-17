@@ -79,7 +79,7 @@ const login = async (req, res) => {
     console.log("SETTING ACCESS TOKEN IN COOKIE");
     res.cookie("accessToken", accessToken, {
       httpOnly: true,
-      secure: true, // Always set to true for security
+      secure: process.env.NODE_ENV === "production", // Always set to true for security
       sameSite: "none", // Allow cross-origin cookies
       maxAge: 60 * 60 * 1000, // 1 hour
       path: "/", // Accessible everywhere
@@ -89,7 +89,7 @@ const login = async (req, res) => {
     console.log("SETTING REFRESH TOKEN IN COOKIE");
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: true, // Always set to true for security
+      secure: process.env.NODE_ENV === "production", // Always set to true for security
       sameSite: "none", // Allow cross-origin cookies
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       path: "/", // Accessible everywhere
@@ -194,7 +194,7 @@ const initiateRegister = async (req, res) => {
     // Set registration token in cookie
     res.cookie("registrationToken", registrationToken, {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === "production",
       maxAge: 10 * 60 * 1000, // 10 minutes
       sameSite: "None",
     });
@@ -287,13 +287,13 @@ const verifyAndRegister = async (req, res) => {
       .clearCookie("registrationToken")
       .cookie("accessToken", accessToken, {
         httpOnly: true,
-        secure: true,
+        secure: process.env.NODE_ENV === "production",
         sameSite: "None",
         maxAge: 60 * 60 * 1000,
       })
       .cookie("refreshToken", refreshToken, {
         httpOnly: true,
-        secure: true,
+        secure: process.env.NODE_ENV === "production",
         sameSite: "None",
         maxAge: 7 * 24 * 60 * 60 * 1000,
       })

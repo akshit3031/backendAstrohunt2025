@@ -54,7 +54,7 @@ router.get("/verify", auth, async (req, res) => {
   
       res.cookie("accessToken", req.newAccessToken, {
         httpOnly: true,
-        secure: true,
+        secure: process.env.NODE_ENV === "production",
         sameSite: "None",
         maxAge: 60 * 60 * 1000, // 1 hour
       });
