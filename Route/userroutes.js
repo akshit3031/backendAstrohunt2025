@@ -38,23 +38,29 @@ router.get("/profile", auth, async (req, res) => {
 });
 router.get("/verify", auth, async (req, res) => {
   console.log("Verifying user");
-  console.log(req.user);
-  const sentUser = {
-    _id: req.user._id,
-    name: req.user.name,
-    email: req.user.email,
-    role: req.user.role,
-    team: req.user.team
+  // check if req.user is undefined
+  if(!req.user || !req.user._id){
+    return res.status(401).json({success: false, message: "Unauthorized"});
+  }else{
+    console.log(req.user );
+    const sentUser = {
+      _id: req.user._id,
+      name: req.user.name,
+      email: req.user.email,
+      role: req.user.role,
+      team: req.user.team   
+    }
+    if(req.newAccessToken){
+  
+      res.cookie("accessToken", req.newAccessToken, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "None",
+        maxAge: 60 * 60 * 1000, // 1 hour
+      });
+    }
+    res.status(200).json({success: true, user: sentUser });
   }
-  if(req.newAccessToken){
-
-    res.cookie("accessToken", req.newAccessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 60 * 60 * 1000, // 1 hour
-    });
-  }
-  res.status(200).json({success: true, user: sentUser });
+ 
 })
 export default router;
