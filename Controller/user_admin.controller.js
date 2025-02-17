@@ -205,8 +205,10 @@ const initiateRegister = async (req, res) => {
 
     //Delete the temp user data and clear the registration token from the cookie after 10 minutes (if the user doesn't send the OTP)
     setTimeout(() => {
-      tempUserStore.delete(registrationToken);
-      res.clearCookie("registrationToken");
+      if(!res.headersSent){
+        tempUserStore.delete(registrationToken);
+        res.clearCookie("registrationToken");
+      }
     }, 10 * 60 * 1000);
 
     return res.status(200).json({
