@@ -26,52 +26,40 @@ const addLevel = async (req, res) => {
 
 // add question
 const addQuestion = async (req, res) => {
-  // Declare imageData at the top level of the function
-  console.log("ADD QUESTION REQUEST RECIVED FROM: ", req.user.email)
-  let imageData = {};
+  console.log("ADD QUESTION REQUEST RECEIVED FROM: ", req.user.email);
+  let imageData = {}; // ✅ Moved this outside to ensure it's available for error handling
 
   try {
     const { levelNum, title, description, correctCode } = req.body;
     const hints = JSON.parse(req.body.hints);
-    console.log(req.body);
-    console.log(req.user);
-    console.log("CREATED BY: ", req.user._id);
+    const newHints = hints.map(hint => ({
+      text: hint,
+      flag: false,
+      unlockTime: 5,
+    }));
 
-    let newHints = []; //to store the hints in the correct format
-    hints.map((hint) => {
-      newHints.push({
-        text: hint,
-        flag: false,
-        unlockTime: 5,
-      });
-    });
-    console.log("New Hint: ", newHints);
-
-    //coveting levelNum to number
-    const levelNumber = Number(req.body.levelNum);
-    // Check if level exists
+    const levelNumber = Number(levelNum);
     const level = await Level.findOne({ level: levelNumber });
 
     if (!level) {
       return res.status(404).json({ message: "Level not found" });
     }
 
-    // Validate hints
-
-    if (!Array.isArray(hints) || hints.length === 0) {
-      return res.status(400).json({
-        message: "At least one hint is required",
-      });
-    }
-
-    // Handle image upload
+    // ✅ Upload image from memory buffer (Fix for Vercel)
     if (req.file) {
       try {
-        // Upload to cloudinary
-        const result = await cloudinary.uploader.upload(req.file.path, {
-          folder: "astrohunt/questions",
-          use_filename: true,
-          unique_filename: true,
+        const result = await new Promise((resolve, reject) => {
+          cloudinary.uploader.upload_stream(
+            {
+              folder: "astrohunt/questions",
+              use_filename: true,
+              unique_filename: true,
+            },
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result);
+            }
+          ).end(req.file.buffer); // ✅ Uploading directly from memory
         });
 
         imageData = {
@@ -80,14 +68,11 @@ const addQuestion = async (req, res) => {
           alt: title,
         };
       } catch (error) {
-        return res.status(400).json({
-          message: "Image upload failed",
-          error: error.message,
-        });
+        return res.status(400).json({ message: "Image upload failed", error: error.message });
       }
     }
 
-    // Create new question
+    // ✅ Create new question
     const newQuestion = new Question({
       level: level._id,
       title,
@@ -95,12 +80,11 @@ const addQuestion = async (req, res) => {
       hints: newHints,
       correctCode,
       image: Object.keys(imageData).length > 0 ? imageData : undefined,
-      createdBy: req.user._id, // Assuming you have user info from auth middleware
+      createdBy: req.user._id,
     });
 
     await newQuestion.save();
 
-    //link level to the question
     level.questions.push(newQuestion._id);
     await level.save();
 
@@ -115,8 +99,8 @@ const addQuestion = async (req, res) => {
       },
     });
   } catch (error) {
-    // If image was uploaded but question creation failed, delete from cloudinary
-    if (imageData && imageData.public_id) {
+    // ✅ Delete image from Cloudinary if question creation fails
+    if (imageData.public_id) {
       await cloudinary.uploader.destroy(imageData.public_id);
     }
 
