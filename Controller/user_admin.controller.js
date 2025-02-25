@@ -124,20 +124,38 @@ const login = async (req, res) => {
 // Add a logout function
 const logout = async (req, res) => {
   try {
-    //Clear access token and refresh token from cookies
-    res.clearCookie("accessToken");
-    res.clearCookie("refreshToken");
+    console.log("LOGOUT FUNCTION TRIGGERED");
+
+    res.cookie("accessToken", "", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "none",
+      expires: new Date(0), // Expire immediately
+      path: "/", // Must match the path used when setting the cookie
+    });
+
+    res.cookie("refreshToken", "", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "none",
+      expires: new Date(0), // Expire immediately
+      path: "/",
+    });
+
+    console.log("COOKIES CLEARED");
 
     return res.status(200).json({
       message: "Logged out successfully",
     });
   } catch (error) {
+    console.error("Logout failed:", error);
     return res.status(500).json({
       message: "Logout failed",
       error: error.message,
     });
   }
 };
+
 
 const verifyOTP = async (req, res) => {
   const { phoneNumber, otp } = req.body;
