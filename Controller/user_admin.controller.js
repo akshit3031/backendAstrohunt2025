@@ -215,6 +215,7 @@ const initiateRegister = async (req, res) => {
       secure: process.env.NODE_ENV === "production",
       maxAge: 10 * 60 * 1000, // 10 minutes
       sameSite: "None",
+      path: "/",
     });
 
     // Send OTP via SMS
