@@ -146,46 +146,42 @@ const updateTeamScore = async (teamId) => {
 
 
 const resetGame = async (req, res) => {
-    try{
+    try {
+        // Reset all teams in a single bulk update
+        await Team.updateMany({}, {
+            $set: {
+                currentLevel: null,
+                currentQuestion: null,
+                score: 0,
+                completedQuestions: [],
+                hasCompletedAllLevels: false,
+                levelStartedAt: null
+            }
+        });
+        console.log("All teams reset to default values");
 
-        const allTeams = await Team.find({});
-        console.log("ALL TEAMS: ", allTeams);
-        for(const team of allTeams){
-            team.currentLevel = null;
-            team.currentQuestion = null;
-            team.score = 0;
-            team.completedQuestions = [];
-            team.hasCompletedAllLevels = false;
-            team.levelStartedAt = null;
-            console.log("Setting the variables of team to default values");
-            await team.save();
-        }        
+        // Reset all hints in questions in a single bulk update
+        await Question.updateMany({}, { $set: { "hints.$[].flag": false } });
+        console.log("All hints reset");
 
-        //mark all hints as unflagged
-        const allQuestions = await Question.find({});
-        for(const question of allQuestions){
-            question.hints = question.hints.map((hint) => {
-                hint.flag = false;
-                return hint;
-            })
-            await question.save();
-        }
+        // Reset game details in a single operation
+        await GameDetails.updateOne({}, {
+            $set: {
+                hasGameStarted: false,
+                gameStartTime: null,
+                gameEndTime: null,
+                hasGameFinished: false
+            }
+        });
+        console.log("Game details reset");
 
-
-        console.log("ALL TEAMS SAVED");
-        const gameDetails = await GameDetails.findOne({});
-        gameDetails.hasGameStarted = false;
-        gameDetails.gameStartTime = null;
-        gameDetails.gameEndTime = null;
-        gameDetails.hasGameFinished = false;
-        await gameDetails.save();
-        
-        return res.status(200).json({message: "Game reset successfully", success: true});
+        return res.status(200).json({ message: "Game reset successfully", success: true });
+    } catch (error) {
+        console.error("Error resetting game:", error);
+        return res.status(500).json({ message: "Error resetting the game", error: error.message, success: false });
     }
-    catch(error){
-        return res.status(500).json({message: "Error reseting the game", error: error.message, completeError: error, success: false});
-    }
-}
+};
+
 
 const finishGame =async(req,res)=>{
     try{
