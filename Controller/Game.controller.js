@@ -22,34 +22,45 @@ const createGameDetails = async (req, res) => {
 }
 
 const startGame = async (req, res) => {
-    try{
-        const gameDetails = await GameDetails.findOne({});
-        if(!gameDetails){
+    try {
+        let gameDetails = await GameDetails.findOne({});
+        if (!gameDetails) {
             await createGameDetails();
             gameDetails = await GameDetails.findOne({});
         }
+
+        if (!gameDetails) {
+            return res.status(500).json({ message: "Failed to initialize game details", success: false });
+        }
+
         gameDetails.hasGameStarted = true;
         gameDetails.gameStartTime = new Date();
         await gameDetails.save();
 
-
         const allTeams = await Team.find({});
-        const firstLevel = await Level.findOne({level: 1});
-        console.log("FIRST LEVEL: ", firstLevel);
-        console.log("FIRST LEVEL ID: ", firstLevel._id);
-        for(const team of allTeams){
-            console.log("TEAM: ", team)
-            team.currentLevel = firstLevel._id;
-            team.currentQuestion = await allotNewRandomQuestionFromLevel(firstLevel._id);
-            team.levelStartedAt = new Date();
-            await team.save();
+        const firstLevel = await Level.findOne({ level: 1 });
+
+        if (!firstLevel) {
+            return res.status(500).json({ message: "No level 1 found", success: false });
         }
-        return res.status(200).json({message: "Game started successfully",success:true});
+
+        await Promise.all(allTeams.map(async (team) => {
+            try {
+                team.currentLevel = firstLevel._id;
+                team.currentQuestion = await allotNewRandomQuestionFromLevel(firstLevel._id);
+                team.levelStartedAt = new Date();
+                await team.save();
+            } catch (teamError) {
+                console.error(`Failed to update team ${team._id}:`, teamError);
+            }
+        }));
+
+        return res.status(200).json({ message: "Game started successfully", success: true });
+    } catch (error) {
+        return res.status(500).json({ message: "Failed to start the game", error: error.message, success: false });
     }
-    catch(error){
-        return res.status(500).json({message: "Failed to start the game", error: error.message, completeError: error,success:false})
-    }
-}
+};
+
 
 const fetchGameStatus = async (req, res) => {
     try{
