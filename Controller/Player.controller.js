@@ -258,13 +258,13 @@ const forgotPasswordIntitation = async (req, res) => {
   
       res.cookie("forgotPasswordToken", forgotPasswordToken, {
         httpOnly: true,
-        secure: true, // Always set to true for security
+        secure: process.env.NODE_ENV === "production",
         sameSite: "none", // Allow cross-origin cookies
         maxAge: 10 * 60 * 1000, // 10 minutes
         path: "/", // Accessible everywhere
       });
   
-      console.log("COOKIES ARE SET: ", res.cookie.forgotPasswordToken);
+    //   console.log("COOKIES ARE SET: ", res.cookie.forgotPasswordToken);
   
       return res
         .status(200)
@@ -278,7 +278,7 @@ const forgotPasswordIntitation = async (req, res) => {
         success: false,
       });
     }
-  };
+  };    
 
   const setNewPassword = async (req, res) => {
     try {
