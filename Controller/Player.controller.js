@@ -3,7 +3,10 @@ import User from "../Model/User.js"
 import  { updateTeamScore } from './Game.controller.js'
 import GameDetails from "../Model/GameDetails.js";
 import Question from "../Model/Question.js";
-
+import { sendEmail } from "../utils/emailService.js";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
+import crypto from "crypto";
 const maxNumberOfTeamMembers = 3;
 
 
@@ -217,12 +220,118 @@ const fetchLeaderBoard = async (req, res) => {
         return res.status(500).json({message: "Error fetching leaderboard", error: error.message, completeError: error, success: false});
     }
 }
+const tempUserStore = new Map();
+const forgotPasswordIntitation = async (req, res) => {
+    try {
+      const { email } = req.body;
+  
+      if (!email) {
+        return res
+          .status(400)
+          .json({ message: "Email is required", success: false });
+      }
+      const user = await User.findOne({ email });
+  
+      if (!user) {
+        return res
+          .status(400)
+          .json({ message: "User not found", success: false });
+      }
+  
+      const otp = Math.random().toString().substring(2, 8);
+      const forgotPasswordToken = crypto.randomBytes(32).toString("hex");
+  
+      const tempUserObject = {
+        email: email,
+        otp: otp,
+      };
+      tempUserStore.set(forgotPasswordToken, tempUserObject);
+  
+      const IntervalID = setTimeout(() => {
+        if (!res.headersSent) {
+          tempUserStore.delete(forgotPasswordToken);
+          res.clearCookie("forgotPasswordToken");
+        }
+      }, 10 * 60 * 1000);
+  
+      await sendEmail(email, otp, "Your OTP for forgot password");
+  
+      res.cookie("forgotPasswordToken", forgotPasswordToken, {
+        httpOnly: true,
+        secure: true, // Always set to true for security
+        sameSite: "none", // Allow cross-origin cookies
+        maxAge: 10 * 60 * 1000, // 10 minutes
+        path: "/", // Accessible everywhere
+      });
+  
+      console.log("COOKIES ARE SET: ", res.cookie.forgotPasswordToken);
+  
+      return res
+        .status(200)
+        .json({ message: "OTP sent to your email", success: true });
+    } catch (error) {
+      console.log("ERROR: ", error.message);
+      return res.status(500).json({
+        message: "Failed to send OTP",
+        error: error.message,
+        completeError: error,
+        success: false,
+      });
+    }
+  };
 
+  const setNewPassword = async (req, res) => {
+    try {
+      const { otp, newPassword } = req.body;
+      console.log("OTP SENT: ", otp);
+      console.log("NEW PASSWORD", newPassword);
+      const forgotPasswordToken = req.cookies.forgotPasswordToken;
+      console.log("COOKIES", req.cookies);
+      console.log("FORGOT PASSWORD TOKEN: ", forgotPasswordToken);
+      if (!forgotPasswordToken) {
+        return res
+          .status(400)
+          .json({ message: "Forgot Password Token is required", success: false });
+      }
+  
+      const emailUser = tempUserStore.get(forgotPasswordToken);
+      console.log("EMAIL USER: ", emailUser);
+      if (!emailUser) {
+        return res.status(400).json({
+          message:
+            "Invalid forgot password token or forgot password token expired",
+          success: false,
+        });
+      }
+  
+      console.log("EMAIL USER OTP:", emailUser.otp);
+      console.log("SENT OTP: ", otp);
+      if (emailUser.otp !== otp) {
+        return res.status(400).json({ message: "Invalid OTP", success: false });
+      }
+  
+      const newPasswordHashed = await bcrypt.hash(newPassword, 10);
+  
+      await User.findOneAndUpdate(
+        { email: emailUser.email },
+        { password: newPasswordHashed }
+      );
+  
+      return res
+        .status(200)
+        .json({ message: "Password updated successfully", success: true });
+    } catch (error) {
+      console.log(error);
+      return res.status(500).json({
+        message: "Failed to update password",
+        error: error.message,
+        sucess: false,
+      });
+    }
+  };
 
-
-
-
-export {createTeam, getTeamCodeToTeamLeader, joinTeam, getCurrentQuestion, submitQuestionCode, getPlayerLeaderBoard,getTeamDetails, fetchGameDetails, fetchLeaderBoard};
+export {createTeam, getTeamCodeToTeamLeader, joinTeam, getCurrentQuestion, submitQuestionCode, getPlayerLeaderBoard,getTeamDetails, fetchGameDetails, fetchLeaderBoard,forgotPasswordIntitation,
+  setNewPassword};
 
 
 

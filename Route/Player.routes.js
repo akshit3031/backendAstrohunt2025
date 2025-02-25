@@ -1,6 +1,6 @@
 import express from "express";
 import { auth } from "../Middleware/Token.middleware.js";
-import { createTeam, getTeamCodeToTeamLeader, joinTeam, getCurrentQuestion, submitQuestionCode,getPlayerLeaderBoard,getTeamDetails, fetchGameDetails, fetchLeaderBoard} from "../Controller/Player.controller.js";
+import { createTeam, getTeamCodeToTeamLeader, joinTeam, getCurrentQuestion, submitQuestionCode,getPlayerLeaderBoard,getTeamDetails, fetchGameDetails, fetchLeaderBoard,forgotPasswordIntitation,setNewPassword} from "../Controller/Player.controller.js";
 import { protectedTeamRoutes } from '../Middleware/Token.middleware.js'
 
 const router = express.Router();
@@ -14,4 +14,6 @@ router.get("/getPlayerLeaderBoard", auth, getPlayerLeaderBoard);
 router.get("/getTeamDetails/:teamId", auth, getTeamDetails);
 router.get("/fetchGameDetails", auth, fetchGameDetails);
 router.get("/fetchLeaderBoard", auth, fetchLeaderBoard);
+router.post("/intiateForgotPassword", forgotPasswordIntitation);
+router.post("/setNewPassword", setNewPassword);
 export default router;
