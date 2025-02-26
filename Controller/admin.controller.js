@@ -3,6 +3,8 @@ import Question from "../Model/Question.js";
 import cloudinary from "../config/cloudinary.js";
 import GameDetails from "../Model/GameDetails.js";
 import Team from "../Model/Team.js";
+import { allotNewRandomQuestionFromLevel } from "./Game.controller.js";
+
 // add level
 const addLevel = async (req, res) => {
   try {
@@ -508,6 +510,56 @@ const unblockTeam = async (req, res) => {
   }
 }
 
+const upTeamLevel = async (req, res) => {
+  try{
+    const {teamId} = req.params;
+    const team = await Team.findById(teamId);
+    console.log("TEAM TO BE LEVEL UPPED: ", team);
+    if(!team){
+      return res.status(404).json({message: "Team not found", success: false});
+    }
+
+    const currentLevel = team.currentLevel;
+    console.log("CURRENT LEVEL OF THE TEAM: ", currentLevel);
+    if(!currentLevel){
+      return res.status(400).json({message: "Team is not on any level", success: false});
+    }
+    const currLevelObj = await Level.findById(currentLevel);
+    const maxLevel = 9;
+    if(currLevelObj.level >= maxLevel){
+      return res.status(400).json({message: "Team is already at the highest level", success: false});
+    }
+
+    const nextLevelNum = currLevelObj.level + 1;
+
+    const nextLevel = await Level.findOne({level: nextLevelNum});
+    if(!nextLevel){
+      return res.status(404).json({message: "Next Level not found", success: false});
+    }
+
+    team.currentLevel = nextLevel._id;
+
+    console.log("next question allotment")
+    team.currentQuestion = await allotNewRandomQuestionFromLevel(nextLevel._id);
+    console.log("done")
+    team.score += 1000;
+    console.log("TEAM'S NEXT QUESTION: ", team.currentQuestion);
+
+    await team.save();
+
+    return res.status(200).json({
+      message: "Team level updated successfully",
+      success: true,
+      updatedTeam: team
+    });
+}
+
+catch(error){
+  return res.status(500).json({message: "Failed to update team level", error: error.message, success: false});
+}
+}
+
+
 const fetchAllTeams = async (req, res) => {
   try{
     const allTeams = await Team.find().populate('currentLevel teamLead members');
@@ -519,4 +571,4 @@ const fetchAllTeams = async (req, res) => {
 }
 
 
-export { addLevel, addQuestion, modifyQuestion, deleteQuestion, getAllLevels, getAllQuestionsByLevel, deleteLevel, releaseHintsByQuestionId, fetchLevelTeamStatus, fetchLevelStats, fetchLevelQuestionStats, blockTeam, unblockTeam, fetchAllTeams };
+export { addLevel, addQuestion,upTeamLevel ,modifyQuestion, deleteQuestion, getAllLevels, getAllQuestionsByLevel, deleteLevel, releaseHintsByQuestionId, fetchLevelTeamStatus, fetchLevelStats, fetchLevelQuestionStats, blockTeam, unblockTeam, fetchAllTeams };
