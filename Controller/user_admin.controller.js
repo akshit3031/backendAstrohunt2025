@@ -84,7 +84,7 @@ const login = async (req, res) => {
       maxAge: 60 * 60 * 1000, // 1 hour
       path: "/", // Accessible everywhere
     });
-
+    console.log("good night");
     //Set refresh token in cookie
     console.log("SETTING REFRESH TOKEN IN COOKIE");
     res.cookie("refreshToken", refreshToken, {
