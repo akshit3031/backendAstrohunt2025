@@ -7,7 +7,7 @@ import { sendEmail } from "../utils/emailService.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
-const maxNumberOfTeamMembers = 3;
+const maxNumberOfTeamMembers = 2;
 
 
 //Create Team
