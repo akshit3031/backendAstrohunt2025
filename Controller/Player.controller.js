@@ -183,6 +183,12 @@ const submitQuestionCode = async (req, res) => {
         const { questionCode, questionId } = req.body;
         const user = req.user;
 
+        //checking if alloted question is the same as question fetched
+        const team = await Team.findById(user.team);
+        if(team.currentQuestion.toString() !== questionId){
+          return res.status(400).json({message: "You are trying to submit code for a question that is not alloted to you"});
+        }
+
         console.log("RECEIVED QUESTION CODE: ", questionCode);
         console.log("RECEIVED QUESTION ID: ", questionId);
 
@@ -191,6 +197,10 @@ const submitQuestionCode = async (req, res) => {
         }
 
         const question = await Question.findById(questionId);
+
+        
+
+
         if(!question){
             return res.status(400).json({message: "Question not found"});
         }
