@@ -129,4 +129,26 @@ const protectedTeamRoutes = async (req, res, next) => {
   }
 }
 
-export { auth, generateAccessToken, generateRefreshToken, protectedAdminRoutes, protectedTeamRoutes };
+const gameStartedProtection = async (req, res, next) => {
+  try{
+    const gameDetails = await GameDetails.findOne({});
+
+    if(!gameDetails){
+      next();
+    }
+
+    if(gameDetails.hasGameStarted === true){
+      return res.status(400).json({message: "Game is not started hence you cannot perform this operation", success: false})
+    }
+    //else if the game has not yet started then allow this operation to occur
+    next()
+  }
+  catch(error){
+    console.log("ERROR IN GAME STARTED PROTECTION: ", error);
+    return res.status(500).json({message: "Error in gameStartedProtection", error: error.message,
+      completeError: error});
+  }
+}
+
+
+export { auth, generateAccessToken, generateRefreshToken, protectedAdminRoutes, protectedTeamRoutes,gameStartedProtection };

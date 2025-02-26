@@ -48,6 +48,41 @@ const createTeam = async (req, res) => {
 
 }
 
+// leave team 
+const leaveTeam = async (req, res) => {
+    try{
+      const user = req.user;
+      const teamId = req.user.team;
+      if(!teamId){
+        return res.status(400).json({message: "You are not in any team", success: false});
+      }
+      const team = await Team.findById(teamId);
+      if (!team) {
+        return res.status(400).json({ message: "Team not found", success: false });
+      }
+  
+      //if the user is a team leader
+      if (team.teamLead.toString() === user._id.toString()) {
+        console.log("USER IS TEAM LEADER")
+        //delete the team entirely and set the alloted team of all users to null and set the player role of team leader to player
+        await Team.findByIdAndDelete(teamId);
+        await User.updateMany({ team: teamId }, { team: null, role: "player" });
+      }
+      else{ //if user is not team leader
+        console.log("USER IS NOT TEAM LEADER")
+        //remove user from team
+        await Team.findByIdAndUpdate(teamId, { $pull: { members: user._id } });
+        await User.updateOne({ _id: user._id }, { team: null, role: "player" });
+      }
+  
+  
+      return res.status(200).json({ message: "Left team successfully", success: true});
+    }
+    catch(error){
+      console.log(error);
+      return res.status(500).json({ message: "Failed to leave team", error: error.message, success: false });
+    }
+  }
 
 const getTeamCodeToTeamLeader = async (req, res) => {
     try{
@@ -330,7 +365,7 @@ const forgotPasswordIntitation = async (req, res) => {
     }
   };
 
-export {createTeam, getTeamCodeToTeamLeader, joinTeam, getCurrentQuestion, submitQuestionCode, getPlayerLeaderBoard,getTeamDetails, fetchGameDetails, fetchLeaderBoard,forgotPasswordIntitation,
+export {createTeam, leaveTeam,getTeamCodeToTeamLeader, joinTeam, getCurrentQuestion, submitQuestionCode, getPlayerLeaderBoard,getTeamDetails, fetchGameDetails, fetchLeaderBoard,forgotPasswordIntitation,
   setNewPassword};
 
 

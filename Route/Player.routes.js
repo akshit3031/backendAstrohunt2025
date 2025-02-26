@@ -1,11 +1,12 @@
 import express from "express";
 import { auth } from "../Middleware/Token.middleware.js";
-import { createTeam, getTeamCodeToTeamLeader, joinTeam, getCurrentQuestion, submitQuestionCode,getPlayerLeaderBoard,getTeamDetails, fetchGameDetails, fetchLeaderBoard,forgotPasswordIntitation,setNewPassword} from "../Controller/Player.controller.js";
-import { protectedTeamRoutes } from '../Middleware/Token.middleware.js'
+import { createTeam, leaveTeam,getTeamCodeToTeamLeader, joinTeam, getCurrentQuestion, submitQuestionCode,getPlayerLeaderBoard,getTeamDetails, fetchGameDetails, fetchLeaderBoard,forgotPasswordIntitation,setNewPassword} from "../Controller/Player.controller.js";
+import { protectedTeamRoutes,gameStartedProtection } from '../Middleware/Token.middleware.js'
 
 const router = express.Router();
 
 router.post("/createTeam", auth, createTeam);
+router.post("/leaveTeam", auth, gameStartedProtection, leaveTeam);
 router.get("/getTeamCodeToTeamLeader", auth, getTeamCodeToTeamLeader);
 router.post("/joinTeam", auth, joinTeam);
 router.get("/getCurrentQuestion", auth, getCurrentQuestion);
