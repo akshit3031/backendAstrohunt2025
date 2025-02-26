@@ -113,60 +113,71 @@ const addQuestion = async (req, res) => {
 
 //modify question
 const modifyQuestion = async (req, res) => {
-  let imageData = {};
+  // let imageData = {};
 
   try {
     const { questionId } = req.params;
     const {
       title,
       description,
-      hints,
       correctCode,
       levelNum,
-      isImageUpdated // In case level needs to be changed
+      // isImageUpdated In case level needs to be changed
     } = req.body;
+    const hints = JSON.parse(req.body.hints);
+    console.log("hints: ", hints);
     console.log("QUESTION ID: ", questionId);
     console.log("MODIFIED QUESTION BODY: ", req.body);
-    console.log("ENTIRE REQUEST: ", req);
+    // console.log("ENTIRE REQUEST: ", req);
   
+    let newHints = []; //to store the hints in the correct format
+    hints.map((hint) => {
+      newHints.push({
+        text: hint,
+        flag: false,
+        unlockTime: 5,
+      });
+    });
+    console.log("New Hint: ", newHints);
+
 
     // Format hints if provide
 
     // Handle image upload if new image is provided
-    if (isImageUpdated==='true' && req.file) {
-      try {
-        // Delete old image from cloudinary if exists
-        if (question.image && question.image.public_id) {
-          await cloudinary.uploader.destroy(question.image.public_id);
-        }
+    // if (isImageUpdated==='true' && req.file) {
+    //   try {
+    //     // Delete old image from cloudinary if exists
+    //     if (question.image && question.image.public_id) {
+    //       await cloudinary.uploader.destroy(question.image.public_id);
+    //     }
 
-        // Upload new image
-        const result = await cloudinary.uploader.upload(req.file.path, {
-          folder: "astrohunt/questions",
-          use_filename: true,
-          unique_filename: true,
-        });
+    //     // Upload new image
+    //     const result = await cloudinary.uploader.upload(req.file.path, {
+    //       folder: "astrohunt/questions",
+    //       use_filename: true,
+    //       unique_filename: true,
+    //     });
 
-        imageData = {
-          url: result.secure_url,
-          public_id: result.public_id,
-          alt: title || question.title,
-        };
-      } catch (error) {
-        return res.status(400).json({
-          message: "Image upload failed",
-          error: error.message,
-        });
-      }
-    }
+    //     imageData = {
+    //       url: result.secure_url,
+    //       public_id: result.public_id,
+    //       alt: title || question.title,
+    //     };
+    //   } catch (error) {
+    //     return res.status(400).json({
+    //       message: "Image upload failed",
+    //       error: error.message,
+    //     });
+    //   }
+    // }
 
     // Prepare update object with only provided fields
-    const updateData = { title, description, hints, correctCode, levelNum };
+    const updateData = { title, description, hints: newHints, correctCode, levelNum };
 
-    if(isImageUpdated === 'true'){
-        console.log("UPDATED IMAGE");
-        updateData.image = imageData;
-    }
+    // if(isImageUpdated === 'true'){
+    //     console.log("UPDATED IMAGE");
+    //     updateData.image = imageData;
+    // }
 
     // Update question
     console.log("UPDATING QUESTION")
@@ -191,9 +202,9 @@ const modifyQuestion = async (req, res) => {
     });
   } catch (error) {
     // If new image was uploaded but update failed, delete it
-    if (imageData && imageData.public_id) {
-      await cloudinary.uploader.destroy(imageData.public_id);
-    }
+    // if (imageData && imageData.public_id) {
+    //   await cloudinary.uploader.destroy(imageData.public_id);
+    // }
 
     return res.status(500).json({
       message: "Failed to update question",
