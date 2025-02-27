@@ -103,18 +103,21 @@ const updateTeamScore = async (teamId) => {
 
         const timeCompletedAt = new Date();
 
-        const allLevels = await Level.find({});
-        allLevels.sort((a, b) => a.level - b.level);
+        const allLevels = await Level.find({}).sort({ level: 1 }).lean();
+
         const lastLevel = allLevels[allLevels.length - 1].level;
         console.log("LAST LEVEL: ", lastLevel);
 
-        const timeTakenToCompleteTheCurrLevelInMinutes = (timeCompletedAt.getSeconds() - team.levelStartedAt.getSeconds());
+        const timeTakenToCompleteTheCurrLevelInMinutes = (timeCompletedAt.getTime() - team.levelStartedAt.getTime())/ (1000 * 60);
         console.log("TIME TAKEN TO COMPLETE THE CURRENT LEVEL IN MINUTES: ", timeTakenToCompleteTheCurrLevelInMinutes);
         if(levelNum === lastLevel){
             console.log("TEAM HAS REACHED THE LAST LEVEL")
             if(!team.hasCompletedAllLevels){
                 console.log("TEAM IS SUBMITTING THE QUESTION OF THE LAST LEVEL")
-                team.score += 1000 + (1000/timeTakenToCompleteTheCurrLevelInMinutes);
+                const safeTimeTaken = timeTakenToCompleteTheCurrLevelInMinutes > 0 ? timeTakenToCompleteTheCurrLevelInMinutes : 1;
+                team.score += 1000 + Math.max(1000 / safeTimeTaken, 0);
+
+                
                 team.currentQuestion = null;
                 team.completedQuestions.push({ currentQuestion: currQuestion, level: levelId, startedAt: team.levelStartedAt, completedAt: timeCompletedAt, timeTaken: timeTakenToCompleteTheCurrLevelInMinutes })
                 team.hasCompletedAllLevels = true;
@@ -133,6 +136,11 @@ const updateTeamScore = async (teamId) => {
         const nextLevelNum = levelNum + 1;
         console.log("NEXT LEVEL NUMBER: ", nextLevelNum);
         const nextLevelRef = allLevels.find((level) => level.level === nextLevelNum);
+        if (!nextLevelRef) {
+            console.log("Next level not found!");
+            return { message: "Error: Next level not found", success: false };
+        }
+        
         const nextLevelId = nextLevelRef._id;
 
         team.currentLevel = nextLevelId;
