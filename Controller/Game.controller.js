@@ -94,7 +94,7 @@ const updateTeamScore = async (teamId) => {
     try{
         const team = await Team.findById(teamId);
         const timeCompletedAt = new Date();
-        if(team.completedQuestion.length>0){
+        if(team.completedQuestions.length>0){
             const lastCompletedQuestion = team.completedQuestions[team.completedQuestions.length - 1];
             const timeDelay = timeCompletedAt - lastCompletedQuestion.completedAt; //time delay between submitting last question and current question
             if(timeDelay < 5000){
