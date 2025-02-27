@@ -93,6 +93,14 @@ const allotNewRandomQuestionFromLevel = async (levelId) => {
 const updateTeamScore = async (teamId) => {
     try{
         const team = await Team.findById(teamId);
+        const timeCompletedAt = new Date();
+
+        const lastCompletedQuestion = team.completedQuestions[team.completedQuestions.length - 1];
+        const timeDelay = timeCompletedAt - lastCompletedQuestion.completedAt; //time delay between submitting last question and current question
+        if(timeDelay < 5000){
+            return {message: "You cannot submit new question so quickly. Please wait."};
+        }
+
         const currQuestion = team.currentQuestion;
         const levelId = team.currentLevel;
         console.log("LEVEL ID: ", levelId);
@@ -101,7 +109,6 @@ const updateTeamScore = async (teamId) => {
         const levelNum = currLevel.level;
         console.log("LEVEL NUMBER: ", levelNum);
 
-        const timeCompletedAt = new Date();
 
         const allLevels = await Level.find({}).sort({ level: 1 }).lean();
 
@@ -133,6 +140,7 @@ const updateTeamScore = async (teamId) => {
             }
         }
         else{
+            
         const nextLevelNum = levelNum + 1;
         console.log("NEXT LEVEL NUMBER: ", nextLevelNum);
         const nextLevelRef = allLevels.find((level) => level.level === nextLevelNum);
