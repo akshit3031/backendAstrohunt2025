@@ -94,12 +94,14 @@ const updateTeamScore = async (teamId) => {
     try{
         const team = await Team.findById(teamId);
         const timeCompletedAt = new Date();
-
-        const lastCompletedQuestion = team.completedQuestions[team.completedQuestions.length - 1];
-        const timeDelay = timeCompletedAt - lastCompletedQuestion.completedAt; //time delay between submitting last question and current question
-        if(timeDelay < 5000){
-            return {message: "You cannot submit new question so quickly. Please wait."};
+        if(team.completedQuestion.length>0){
+            const lastCompletedQuestion = team.completedQuestions[team.completedQuestions.length - 1];
+            const timeDelay = timeCompletedAt - lastCompletedQuestion.completedAt; //time delay between submitting last question and current question
+            if(timeDelay < 5000){
+                return {message: "You cannot submit new question so quickly. Please wait."};
+            }
         }
+       
 
         const currQuestion = team.currentQuestion;
         const levelId = team.currentLevel;
