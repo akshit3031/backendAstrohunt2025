@@ -96,8 +96,8 @@ const updateTeamScore = async (teamId) => {
         const timeCompletedAt = new Date();
         if(team.completedQuestions.length>0){
             const lastCompletedQuestion = team.completedQuestions[team.completedQuestions.length - 1];
-            const timeDelay = timeCompletedAt - lastCompletedQuestion.completedAt; //time delay between submitting last question and current question
-            if(timeDelay < 5000){
+            const timeDelay = timeCompletedAt.getTime() - lastCompletedQuestion.completedAt.getTime(); //time delay between submitting last question and current question
+            if(timeDelay < 60000){
                 return {message: "You cannot submit new question so quickly. Please wait."};
             }
         }
