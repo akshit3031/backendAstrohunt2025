@@ -252,11 +252,13 @@ const verifyAndRegister = async (req, res) => {
       secure: process.env.NODE_ENV === "production",
       sameSite: "None",
       maxAge: 60 * 60 * 1000,
+      path :"/"
     }).cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "None",
       maxAge: 7 * 24 * 60 * 60 * 1000,
+      path:"/"
     }).status(201).json({
       message: "User registered successfully",
       success: true,
