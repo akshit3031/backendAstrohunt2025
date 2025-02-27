@@ -211,9 +211,11 @@ const submitQuestionCode = async (req, res) => {
 
         //The team leader has entered the correct code for the question
         //Updating the team's score
-        const message = await updateTeamScore(user.team);
-
-        return res.status(200).json({message: message, success: true});
+        const response = await updateTeamScore(user.team);
+        if(response.success===true){
+          return res.status(200).json({message: response.message, success: response.success});
+        }
+        return res.status(400).json({message: response.message, success: response.success});
     }
     catch(error){
         return res.status(500).json({message: "Failed to submit question code", error: error.message, success: false});

@@ -98,7 +98,7 @@ const updateTeamScore = async (teamId) => {
             const lastCompletedQuestion = team.completedQuestions[team.completedQuestions.length - 1];
             const timeDelay = timeCompletedAt.getTime() - lastCompletedQuestion.completedAt.getTime(); //time delay between submitting last question and current question
             if(timeDelay < 60000){
-                return {message: "You cannot submit new question so quickly. Please wait."};
+                return {message: "You cannot submit new question so quickly. Please wait.",success:false};
             }
         }
        
@@ -138,7 +138,7 @@ const updateTeamScore = async (teamId) => {
             else{
                 //do nothing the team has already completed and submitted the last level
                 console.log("TEAM HAS ALREADY COMPLETED AND SUBMITTED THE QUESTION OF THE LAST LEVEL")
-                return {message: "Team has already completed and submitted the last level"}
+                return {message: "Team has already completed and submitted the last level",success:false};
             }
         }
         else{
@@ -164,7 +164,7 @@ const updateTeamScore = async (teamId) => {
         // 1000 points will be given to each team for comepleting a particular level and an extra (1000/timetakentocompleteTheCurrLevelInMinutes) will be given for completing the level in less time)
         await team.save();
         console.log("TEAM HAS MOVED TO THE NEXT LEVEL");
-        return {message: "Team has moved to the next level"};
+        return {message: "Team has moved to the next level",success:true};
         }
     }
     catch(error){
