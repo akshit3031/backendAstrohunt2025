@@ -12,7 +12,7 @@ const app = express();
 // CORS configuration
 app.use(
   cors({
-    origin: ["https://frontend-antariksh.vercel.app","http://localhost:3000"], // Specify the exact frontend URL (no trailing slash)
+    origin: ["https://frontend-astrohunt2025.vercel.app/","http://localhost:3000"], // Specify the exact frontend URL (no trailing slash)
     credentials: true, // Allow cookies and credentials
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Allowed methods
     allowedHeaders: ["Content-Type", "Authorization"], // Allowed headers for preflight requests
