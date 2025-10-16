@@ -38,7 +38,6 @@ const userSchema = new mongoose.Schema(
       ref: "Team",
       default: null
     },
-    refreshToken: String,
     resetPasswordToken: String,
     resetPasswordExpire: Date,
     otpForPasswordReset: String,

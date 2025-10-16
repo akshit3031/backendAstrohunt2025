@@ -3,71 +3,63 @@ import User from "../Model/User.js";
 import Team from "../Model/Team.js";
 import GameDetails from "../Model/GameDetails.js";
 
-const generateRefreshToken = (userId) => {
-  const refreshToken = jwt.sign(
-    { userId: userId },
-    process.env.JWT_REFRESH_SECRET,
-    {
-      expiresIn: "7d",
-    }
-  );
-  return refreshToken;
-};
-
 const generateAccessToken = (userId) => {
-  const accessToken = jwt.sign(
-    { userId: userId },
-    process.env.JWT_ACCESS_SECRET,
-    {
-      expiresIn: "1h",
-    }
-  );
+  const secret = process.env.JWT_ACCESS_SECRET;
+  if (!secret) {
+    // Fail fast with a clear error so the caller/logs can indicate missing config
+    throw new Error('JWT_ACCESS_SECRET is not defined in environment variables');
+  }
+  const accessToken = jwt.sign({ userId: userId }, secret, { expiresIn: '24h' });
   return accessToken;
 };
 
+// Helper to set auth cookies consistently and optionally expose tokens to the response body
+const setAuthCookies = (res, { accessToken } = {}) => {
+  try {
+    // Access token (server-side cookie setting commented out so frontend sets cookies explicitly)
+    if (accessToken) {
+      // res.cookie("accessToken", accessToken, {
+      //   httpOnly: true,
+      //   secure: process.env.NODE_ENV === "production",
+      //   sameSite: "None",
+      //   maxAge: 60 * 60 * 1000, // 1 hour
+      //   path: "/",
+      // });
+    }
+    // Also attach token to res.locals for route handlers to include in JSON responses if desired
+    if (!res.locals) res.locals = {};
+    if (accessToken) res.locals.token = accessToken;
+  } catch (err) {
+    console.log("Error while setting auth cookies:", err);
+  }
+};
+
 const auth = async (req, res, next) => {
-  console.log("AUTH MIDDLEWARE CALLED");
-  const accessToken = req.cookies.accessToken;
-  const refreshToken = req.cookies.refreshToken;
-  console.log("ACCESS TOKEN: ", accessToken);
-  console.log("REFRESH TOKEN: ", refreshToken);
+  console.log("AUTH MIDDLEWARE CALLED (header-based)");
+  // Expect Authorization: Bearer <token>
+  const authHeader = req.headers.authorization || req.headers.Authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ message: 'Unauthorized: missing Authorization header' });
+  }
 
+  const token = authHeader.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ message: 'Unauthorized: malformed token' });
+  }
 
-  if (!accessToken) {
-    console.log("NO ACCESS TOKEN FOUND");
-    if (!refreshToken) {
-      console.log("NO REFRESH TOKEN FOUND");
-      return res.status(401).json({ message: "Unauthorized" });
+  try {
+    const secret = process.env.JWT_ACCESS_SECRET;
+    if (!secret) {
+      console.error('JWT_ACCESS_SECRET is not defined - cannot verify token');
+      return res.status(500).json({ message: 'Server misconfiguration: missing JWT secret' });
     }
-
-    try {
-      console.log("DECODING TOKEN: ");
-      const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
-      console.log("Decoded JWT: 1 ", decoded);
-      req.user = await User.findById(decoded.userId);
-      console.log("Found user:  ", req.user);
-
-      console.log("GENERATING NEW ACCESS TOKEN: ");
-      const newAccessToken = generateAccessToken(req.user._id);
-      req.newAccessToken = newAccessToken;
-      console.log("NEW ACCESS TOKEN: ", newAccessToken);
-
-
-      next();
-    } catch (error) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-  } else {
-    try {
-      const decoded = jwt.verify(accessToken, process.env.JWT_ACCESS_SECRET);
-      console.log("decoded object: ", decoded);
-      req.user = await User.findById(decoded.userId);
-      console.log("FOUND USER: ", req.user);
-      console.log("Decoded JWT: 3", decoded);
-      next();
-    } catch (error) {
-      return res.status(401).json({ message: "Invalid access token" });
-    }
+    const decoded = jwt.verify(token, secret);
+    req.user = await User.findById(decoded.userId);
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized: user not found' });
+    next();
+  } catch (err) {
+    console.log('Token verification failed:', err.message);
+    return res.status(401).json({ message: 'Invalid token' });
   }
 };
 
@@ -151,4 +143,4 @@ const gameStartedProtection = async (req, res, next) => {
 }
 
 
-export { auth, generateAccessToken, generateRefreshToken, protectedAdminRoutes, protectedTeamRoutes,gameStartedProtection };
+export { auth, generateAccessToken, protectedAdminRoutes, protectedTeamRoutes,gameStartedProtection };

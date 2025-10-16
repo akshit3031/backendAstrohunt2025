@@ -1,8 +1,5 @@
 import User from "../Model/User.js";
-import {
-  generateAccessToken,
-  generateRefreshToken,
-} from "../Middleware/Token.middleware.js";
+import { generateAccessToken } from "../Middleware/Token.middleware.js";
 import bcrypt from "bcrypt";
 import twilio from "twilio";
 import crypto from "crypto";
@@ -70,39 +67,10 @@ const login = async (req, res) => {
 
     // Generate JWT token
     console.log("GENERATING ACCESS TOKEN");
-    const accessToken = generateAccessToken(user._id);
-    console.log("ACCESS TOKEN GENERATED", accessToken);
-    const refreshToken = generateRefreshToken(user._id);
-    console.log("REFRESH TOKEN GENERATED", refreshToken);
-
-    //Set access token in cookie
-    console.log("SETTING ACCESS TOKEN IN COOKIE");
-    res.cookie("accessToken", accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production", // Always set to true for security
-      sameSite: "none", // Allow cross-origin cookies
-      maxAge: 60 * 60 * 1000, // 1 hour
-      path: "/", // Accessible everywhere
-    });
-    console.log("good night");
-    //Set refresh token in cookie
-    console.log("SETTING REFRESH TOKEN IN COOKIE");
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production", // Always set to true for security
-      sameSite: "none", // Allow cross-origin cookies
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      path: "/", // Accessible everywhere
-    });
-
-    //Update user with refresh token
-    console.log("UPDATING USER WITH REFRESH TOKEN");
-    user.refreshToken = refreshToken;
-    await user.save();
-    console.log("USER UPDATED WITH REFRESH TOKEN");
-
-    // Return user info (excluding sensitive data)
-    console.log("RETURNING USER INFO");
+    const token = generateAccessToken(user._id);
+    console.log("ACCESS TOKEN GENERATED", token);
+    // Return user info (excluding sensitive data) and single token in JSON
+    console.log("RETURNING USER INFO with token");
     return res.status(200).json({
       message: "Login successful",
       user: {
@@ -110,8 +78,9 @@ const login = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        team:user.team,
+        team: user.team,
       },
+      token,
     });
   } catch (error) {
     return res.status(500).json({
@@ -126,27 +95,23 @@ const logout = async (req, res) => {
   try {
     console.log("LOGOUT FUNCTION TRIGGERED");
 
-    res.cookie("accessToken", "", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "none",
-      expires: new Date(0), // Expire immediately
-      path: "/", // Must match the path used when setting the cookie
-    });
-
-    res.cookie("refreshToken", "", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "none",
-      expires: new Date(0), // Expire immediately
-      path: "/",
-    });
-
-    console.log("COOKIES CLEARED");
-
-    return res.status(200).json({
-      message: "Logged out successfully",
-    });
+    // Previously the server cleared cookies here. Commenting out so frontend handles cookie clearing explicitly.
+    // res.cookie("accessToken", "", {
+    //   httpOnly: true,
+    //   secure: process.env.NODE_ENV === "production",
+    //   sameSite: "none",
+    //   expires: new Date(0), // Expire immediately
+    //   path: "/",
+    // });
+    // res.cookie("refreshToken", "", {
+    //   httpOnly: true,
+    //   secure: process.env.NODE_ENV === "production",
+    //   sameSite: "none",
+    //   expires: new Date(0), // Expire immediately
+    //   path: "/",
+    // });
+    console.log("Logout: returning success; frontend should clear cookies explicitly");
+    return res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
     console.error("Logout failed:", error);
     return res.status(500).json({
@@ -236,30 +201,12 @@ const verifyAndRegister = async (req, res) => {
     const newUser = new User({ ...userData, isPhoneVerified: true });
     await newUser.save();
 
-    // Generate authentication tokens
-    const accessToken = generateAccessToken(newUser._id);
-    const refreshToken = generateRefreshToken(newUser._id);
-    
-    // Update user with refresh token
-    newUser.refreshToken = refreshToken;
-    await newUser.save();
-
+    // Generate authentication token
+    const token = generateAccessToken(newUser._id);
     // Clear temp store
     tempUserStore.delete(email);
-
-    return res.cookie("accessToken", accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "None",
-      maxAge: 60 * 60 * 1000,
-      path :"/"
-    }).cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "None",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      path:"/"
-    }).status(201).json({
+    // Return user info and single token in JSON
+    return res.status(201).json({
       message: "User registered successfully",
       success: true,
       user: {
@@ -269,6 +216,7 @@ const verifyAndRegister = async (req, res) => {
         role: newUser.role,
         team: newUser.team,
       },
+      token,
       redirectTo: '/game',
     });
   } catch (error) {

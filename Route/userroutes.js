@@ -50,16 +50,19 @@ router.get("/verify", auth, async (req, res) => {
       role: req.user.role,
       team: req.user.team   
     }
-    if(req.newAccessToken){
-  
-      res.cookie("accessToken", req.newAccessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "None",
-        maxAge: 60 * 60 * 1000, // 1 hour
-      });
-    }
-    res.status(200).json({success: true, user: sentUser });
+    // If middleware generated a new access token, don't set cookies server-side here; frontend will set them
+    // if(req.newAccessToken){
+    //   res.cookie("accessToken", req.newAccessToken, {
+    //     httpOnly: true,
+    //     secure: process.env.NODE_ENV === "production",
+    //     sameSite: "None",
+    //     maxAge: 60 * 60 * 1000, // 1 hour
+    //   });
+    // }
+
+    // Include tokens attached by middleware in JSON so frontend can set cookies explicitly
+    const tokens = res.locals?.tokens || {};
+    res.status(200).json({ success: true, user: sentUser, tokens });
   }
  
 })
