@@ -3,7 +3,7 @@ import multer from "multer";
 import { auth, protectedAdminRoutes } from "../Middleware/Token.middleware.js";
 import { addQuestion, addLevel, upTeamLevel,modifyQuestion, deleteQuestion, getAllLevels, getAllQuestionsByLevel, deleteLevel, releaseHintsByQuestionId, fetchLevelTeamStatus, fetchLevelStats, fetchLevelQuestionStats, blockTeam, unblockTeam, fetchAllTeams } from "../Controller/admin.controller.js";
 import { upload } from "../config/multer.js";
-import { startGame, resetGame, finishGame, fetchGameStatus } from "../Controller/Game.controller.js";
+import { startGame, resetGame, finishGame, fetchGameStatus, getLevelWiseLeaderboard } from "../Controller/Game.controller.js";
 const router = express.Router();
 
 // Use upload.single('image') middleware for image upload
@@ -51,5 +51,6 @@ router.get("/fetchGameStatus", auth, protectedAdminRoutes, fetchGameStatus);
 router.get('/level-stats', fetchLevelStats);
 router.get('/level/:levelId/questions', fetchLevelQuestionStats);
 router.get("/fetchAllTeams", auth, protectedAdminRoutes, fetchAllTeams);
+router.get("/getLevelWiseLeaderboard", auth, protectedAdminRoutes, getLevelWiseLeaderboard);
 
 export default router;

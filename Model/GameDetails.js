@@ -20,7 +20,20 @@ const gameDetailsSchema = new mongoose.Schema(
         finishedTeams: {
             type: [mongoose.Schema.Types.ObjectId],
             ref: 'Team'
-        }
+        },
+        // Level-wise leaderboard: array of levels with teams
+        // Structure: [{ level: 1, teams: [teamId1, teamId2] }, { level: 2, teams: [teamId3] }, ...]
+        // Ordered by level number, easy to traverse from back for top teams
+        leaderboard: [{
+            level: {
+                type: Number,
+                required: true
+            },
+            teams: [{
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Team'
+            }]
+        }]
     },
     {timestamps: true}
 )

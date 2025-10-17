@@ -255,13 +255,39 @@ const fetchGameDetails = async (req, res) => {
 
 const fetchLeaderBoard = async (req, res) => {
     try{
-
-        const allTeams = await Team.find({}).select("teamName currentLevel currentQuestion score");
-        if(!allTeams){
-            return res.status(404).json({message: "No teams found", success: false});
+        const gameDetails = await GameDetails.findOne({});
+        if (!gameDetails || !gameDetails.leaderboard) {
+            return res.status(404).json({ message: "Game not started or leaderboard not found", success: false });
         }
-        const teamsSortedByScore = allTeams.sort((a, b) => b.score - a.score).slice(0, 10);
-        return res.status(200).json({message: "Leaderboard", leaderboard: teamsSortedByScore, success: true});
+
+        // Populate team details for each level (leaderboard is already sorted by index)
+        const leaderboardWithDetails = await Promise.all(
+            (gameDetails.leaderboard || []).map(async (levelEntry) => {
+                const teams = await Team.find({ _id: { $in: levelEntry.teams } })
+                    .select('teamName currentLevel hasCompletedAllLevels')
+                    .populate('currentLevel', 'level')
+                    .lean();
+                
+                return {
+                    level: levelEntry.level,
+                    teams: teams
+                };
+            })
+        );
+
+        // Get top 10 teams by traversing from LAST level (highest) to first
+        const allTeamsFlat = [];
+        for (let i = leaderboardWithDetails.length - 1; i >= 0; i--) {
+            allTeamsFlat.push(...leaderboardWithDetails[i].teams);
+        }
+        
+        const top10Teams = allTeamsFlat.slice(0, 10);
+
+        return res.status(200).json({
+            message: "Leaderboard fetched successfully",
+            leaderboard: top10Teams,  // Top 10 teams for players
+            success: true
+        });
     }
     catch(error){
         return res.status(500).json({message: "Error fetching leaderboard", error: error.message, completeError: error, success: false});

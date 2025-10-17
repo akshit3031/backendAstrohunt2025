@@ -20,11 +20,6 @@ const teamSchema = new mongoose.Schema({
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Level'
     },
-
-    score: {
-      type: Number,
-      default: 0
-    },
     currentQuestion: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Question'

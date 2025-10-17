@@ -3,7 +3,7 @@ import Question from "../Model/Question.js";
 import cloudinary from "../config/cloudinary.js";
 import GameDetails from "../Model/GameDetails.js";
 import Team from "../Model/Team.js";
-import { allotNewRandomQuestionFromLevel } from "./Game.controller.js";
+import { allotNewRandomQuestionFromLevel, moveTeamInLeaderboard } from "./Game.controller.js";
 
 // add level
 const addLevel = async (req, res) => {
@@ -391,29 +391,56 @@ const fetchLevelStats = async (req, res) => {
       return res.status(400).json({ message: "Game has not started yet", success: false });
     }
 
-    // Fetch teams with populated currentLevel
-    const allTeams = await Team.find().populate('currentLevel');
-    
-    // Fetch all levels
-    const allLevels = await Level.find().sort({ level: 1 }); // Sort by level number
+    // Check if leaderboard is initialized
+    if (!gameDetails.leaderboard || gameDetails.leaderboard.length === 0) {
+      return res.status(400).json({ 
+        message: "Leaderboard not initialized. Please run /admin/fixLeaderboard or restart the game", 
+        success: false 
+      });
+    }
 
-    const levelStats = allLevels.map(level => {
-      // Get teams in this level
-      const teamsInLevel = allTeams.filter(team => 
-        team.currentLevel && team.currentLevel._id.toString() === level._id.toString()
-      );
-
-      return {
-        levelId: level._id,
-        levelNumber: level.level,
-        totalTeams: teamsInLevel.length,
-        teamNames: teamsInLevel.map(team => ({
-          teamName: team.teamName,
-          teamId: team._id
-        })),
-        totalQuestions: level.questions ? level.questions.length : 0
-      };
+    // Pre-fetch all level documents at once (single query, no sorting needed)
+    // Create a Map for O(1) lookup by level number
+    const allLevelsArray = await Level.find().lean();
+    const levelMap = new Map();
+    allLevelsArray.forEach(level => {
+      levelMap.set(level.level, level);
     });
+
+    // The last entry in leaderboard is the completion level
+    const completionLevelIndex = gameDetails.leaderboard.length - 1;
+
+    // Process leaderboard using direct array index access - O(n) complexity
+    // No sorting, no finding - leaderboard is already sorted by index
+    const levelStats = await Promise.all(
+      gameDetails.leaderboard.map(async (levelEntry, index) => {
+        // Check if this is the completion level (last level)
+        const isCompletionLevel = index === completionLevelIndex;
+        
+        // Direct O(1) lookup from Map using level number (skip for completion level)
+        const levelDoc = isCompletionLevel ? null : levelMap.get(levelEntry.level);
+        
+        // Batch fetch team details for this level (single query per level)
+        const teams = levelEntry.teams.length > 0
+          ? await Team.find({ _id: { $in: levelEntry.teams } })
+              .select('teamName _id hasCompletedAllLevels')
+              .lean()
+          : [];
+
+        return {
+          levelId: levelDoc?._id || null,
+          levelNumber: isCompletionLevel ? 'Completed' : levelEntry.level,
+          isCompletionLevel: isCompletionLevel,
+          totalTeams: levelEntry.teams.length,
+          teamNames: teams.map(team => ({
+            teamName: team.teamName,
+            teamId: team._id,
+            hasCompletedAllLevels: team.hasCompletedAllLevels
+          })),
+          totalQuestions: levelDoc?.questions?.length || 0
+        };
+      })
+    );
 
     return res.status(200).json({ levelStats, success: true });
 
@@ -524,9 +551,21 @@ const upTeamLevel = async (req, res) => {
     if(!currentLevel){
       return res.status(400).json({message: "Team is not on any level", success: false});
     }
+    
     const currLevelObj = await Level.findById(currentLevel);
-    const maxLevel = 9;
-    if(currLevelObj.level >= maxLevel){
+    
+    // Get total levels from game details
+    const gameDetails = await GameDetails.findOne({});
+    if (!gameDetails || !gameDetails.leaderboard || gameDetails.leaderboard.length === 0) {
+      return res.status(400).json({
+        message: "Leaderboard not initialized. Please run /admin/fixLeaderboard", 
+        success: false
+      });
+    }
+    
+    const totalLevels = gameDetails.leaderboard.length - 1; // Subtract completion level
+    
+    if(currLevelObj.level >= totalLevels){
       return res.status(400).json({message: "Team is already at the highest level", success: false});
     }
 
@@ -542,10 +581,17 @@ const upTeamLevel = async (req, res) => {
     console.log("next question allotment")
     team.currentQuestion = await allotNewRandomQuestionFromLevel(nextLevel._id);
     console.log("done")
-    team.score += 1000;
+    
+    // Remove score update - we don't use scores anymore
+    // team.score += 1000;  // REMOVED
+    
     console.log("TEAM'S NEXT QUESTION: ", team.currentQuestion);
 
     await team.save();
+    
+    // Update leaderboard - move team from current level to next level
+    await moveTeamInLeaderboard(teamId, currLevelObj.level, nextLevelNum);
+    console.log(`Team moved in leaderboard from level ${currLevelObj.level} to ${nextLevelNum}`);
 
     return res.status(200).json({
       message: "Team level updated successfully",
