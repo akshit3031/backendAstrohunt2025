@@ -263,25 +263,33 @@ const fetchLeaderBoard = async (req, res) => {
         // Populate team details for each level (leaderboard is already sorted by index)
         const leaderboardWithDetails = await Promise.all(
             (gameDetails.leaderboard || []).map(async (levelEntry) => {
-                const teams = await Team.find({ _id: { $in: levelEntry.teams } })
-                    .select('teamName currentLevel hasCompletedAllLevels')
-                    .populate('currentLevel', 'level')
-                    .lean();
+                // Preserve the order of teams as they appear in levelEntry.teams array
+                // This maintains the queue order (first to solve = first in array)
+                const teams = [];
+                for (const teamId of levelEntry.teams) {
+                    const team = await Team.findById(teamId)
+                        .select('teamName currentLevel hasCompletedAllLevels')
+                        .populate('currentLevel', 'level')
+                        .lean();
+                    if (team) teams.push(team);
+                }
                 
                 return {
                     level: levelEntry.level,
-                    teams: teams
+                    teams: teams  // Teams are in queue order (first solved = first in array)
                 };
             })
         );
 
-        // Get top 10 teams by traversing from LAST level (highest) to first
-        const allTeamsFlat = [];
-        for (let i = leaderboardWithDetails.length - 1; i >= 0; i--) {
-            allTeamsFlat.push(...leaderboardWithDetails[i].teams);
+        // Get top 10 teams by starting from HIGHEST level and taking teams from the START of each level's queue
+        const top10Teams = [];
+        for (let i = leaderboardWithDetails.length - 1; i >= 0 && top10Teams.length < 10; i--) {
+            const levelTeams = leaderboardWithDetails[i].teams;
+            // Take teams from the beginning of this level (first to solve)
+            for (let j = 0; j < levelTeams.length && top10Teams.length < 10; j++) {
+                top10Teams.push(levelTeams[j]);
+            }
         }
-        
-        const top10Teams = allTeamsFlat.slice(0, 10);
 
         return res.status(200).json({
             message: "Leaderboard fetched successfully",
