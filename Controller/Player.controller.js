@@ -205,7 +205,7 @@ const submitQuestionCode = async (req, res) => {
             return res.status(400).json({message: "Question not found"});
         }
 
-        if(question.correctCode.toLowerCase() !== questionCode.toLowerCase()){
+        if(question.correctCode.trim().toLowerCase() !== questionCode.trim().toLowerCase()){
             return res.status(400).json({message: "Incorrect question code"});
         }
 
